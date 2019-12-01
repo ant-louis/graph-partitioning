@@ -37,7 +37,15 @@ class Solver:
 
         # K-mean clustering on the eigenvectors matrix
         labels = self.kmean(eVectors)
-        print(np.array(labels))
+        #print(np.array(labels))
+
+        # Output the clusters
+
+
+        # Compute score (print it)
+
+
+        # Return clusters
 
 
     def compute_adjacency(self):
