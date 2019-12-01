@@ -1,10 +1,40 @@
 import os
 import networkx as nx
 import matplotlib.pyplot as plt
+from scipy import linalg as la
+from scipy.sparse import linalg as sla
+import scipy.sparse as sparse
+import scipy
+
+class Solver:
+    def __init__(self, G):
+        self.G = G
+        self.adj = self.compute_adjacency()
+
+    def algo1(self):
+        # draw_graph(G)
+        L = self.compute_laplacian()
+        eValues, eVectors = self.compute_eigen(L)
+
+
+    def compute_adjacency(self):
+        adj = nx.adjacency_matrix(self.G)
+        return adj
+
+    def compute_laplacian(self):
+        return nx.laplacian_matrix(self.G)
+
+    def compute_normalized_laplacian(self):
+        return nx.normalized_laplacian_matrix(self.G)
+
+    def compute_eigen(self, M):
+        # M = sparse.csr_matrix(M.astype(float))
+        return sla.eigs(M.astype(float))
+
+
 
 def create_graph(graphName):
     fp = os.path.join("..", "graphs_processed", graphName + ".txt")
-
 
     G = nx.Graph(name=graphName)
     # with open(fp) as f:
@@ -12,9 +42,7 @@ def create_graph(graphName):
     # nodes = nx.read_adjlist("nodes.txt")
     # my_graph.add_nodes_from(nodes)
     G.add_edges_from(edges.edges())
-
     return G
-
 
 def draw_graph(G):
 
@@ -25,28 +53,16 @@ def draw_graph(G):
     plt.show()
     # plt.savefig("test.png")
 
-def compute_adjacency(G):
-    adj = nx.adjacency_matrix(G)
-    return adj
-
-def compute_laplacian(G):
-    return nx.laplacian_matrix(G)
-
-def compute_normalized_laplacian(G):
-    return nx.normalized_laplacian_matrix(G)
-
-def import_raw_data(graphName):
-    pass
-
 
 if __name__ =="__main__":
     print("Hello there, general Kenobi")
-    G = create_graph("ca-AstroPh-reduced")
+    G = create_graph("ca-AstroPh")
 
-    # draw_graph(G)
-    adj = compute_adjacency(G).todense()
+    solver = Solver(G)
+    solver.algo1()
 
-    L = compute_laplacian(G)
+
+
 
 
 
