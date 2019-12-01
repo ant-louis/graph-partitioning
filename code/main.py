@@ -6,21 +6,27 @@ from scipy.sparse import linalg as sla
 import scipy.sparse as sparse
 import scipy
 
+
 class Solver:
-    def __init__(self, G):
+    def __init__(self, G, nVertices, nEdges, k):
         self.G = G
         self.adj = self.compute_adjacency()
+        self.nVertices = nVertices
+        self.nEdges = nEdges
+        self.k = k
 
     def algo1(self):
         # draw_graph(G)
         L = self.compute_laplacian()
         eValues, eVectors = self.compute_eigen(L)
+        print(eValues)
 
 
     def compute_adjacency(self):
         adj = nx.adjacency_matrix(self.G)
         return adj
 
+    # Compute unormalized laplacian (L=D-A)
     def compute_laplacian(self):
         return nx.laplacian_matrix(self.G)
 
@@ -28,12 +34,12 @@ class Solver:
         return nx.normalized_laplacian_matrix(self.G)
 
     def compute_eigen(self, M):
-        # M = sparse.csr_matrix(M.astype(float))
-        return sla.eigs(M.astype(float))
+        M = sparse.csr_matrix(M.astype(float))
+        return sla.eigs(M.astype(float), k=self.k)
 
 
 
-def create_graph(graphName):
+def import_graph(graphName):
     fp = os.path.join("..", "graphs_processed", graphName + ".txt")
 
     G = nx.Graph(name=graphName)
@@ -42,7 +48,14 @@ def create_graph(graphName):
     # nodes = nx.read_adjlist("nodes.txt")
     # my_graph.add_nodes_from(nodes)
     G.add_edges_from(edges.edges())
-    return G
+
+    with open(fp) as f:
+        firstLine = f.readline()
+        fLineSplit = firstLine.split(" ")
+        nVertices = int(fLineSplit[2])
+        nEdges = int(fLineSplit[3])
+        k = int(fLineSplit[4])
+    return G, nVertices, nEdges, k
 
 def draw_graph(G):
 
@@ -56,10 +69,14 @@ def draw_graph(G):
 
 if __name__ =="__main__":
     print("Hello there, general Kenobi")
-    G = create_graph("ca-AstroPh")
+    G, nVertices, nEdges, k = import_graph("ca-AstroPh")
 
-    solver = Solver(G)
+
+
+    solver = Solver(G, nVertices, nEdges, k)
     solver.algo1()
+
+
 
 
 
