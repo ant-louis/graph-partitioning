@@ -6,6 +6,9 @@ from scipy.sparse import linalg as sla
 import scipy.sparse as sparse
 import scipy
 
+from sklearn.cluster import KMeans
+import numpy as np
+
 
 class Solver:
     def __init__(self, G, nVertices, nEdges, k):
@@ -19,7 +22,10 @@ class Solver:
         # draw_graph(G)
         L = self.compute_laplacian()
         eValues, eVectors = self.compute_eigen(L)
-        print(eValues)
+        kmean = self.kmean(eVectors)
+
+        nodes = G.nodes()
+        kmean.predict(self.G.nodes())
 
 
     def compute_adjacency(self):
@@ -37,6 +43,16 @@ class Solver:
         M = sparse.csr_matrix(M.astype(float))
         return sla.eigs(M.astype(float), k=self.k)
 
+    def kmean(self, M):
+        if np.iscomplex(M).all():
+           raise ValueError("[Solver.kmean] Expecting real Matrix, "
+                            "got complex")
+        else:
+            M = np.real(M)
+
+        kmeans = KMeans(n_clusters=self.k, init='k-means++', max_iter=300,
+                        n_init=10, random_state=0)
+        return kmeans.fit(M)
 
 
 def import_graph(graphName):
