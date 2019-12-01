@@ -1,13 +1,20 @@
-import os
+import os, sys
 import networkx as nx
 import matplotlib.pyplot as plt
+
+import numpy
+numpy.set_printoptions(threshold=sys.maxsize)
+
+import scipy
 from scipy import linalg as la
 from scipy.sparse import linalg as sla
 import scipy.sparse as sparse
-import scipy
+
+import pandas as pd
 
 from sklearn.cluster import KMeans
 import numpy as np
+
 
 
 class Solver:
@@ -19,43 +26,75 @@ class Solver:
         self.k = k
 
     def algo1(self):
-        # draw_graph(G)
-        L = self.compute_laplacian()
-        eValues, eVectors = self.compute_eigen(L)
-        kmean = self.kmean(eVectors)
+        """
+        Implementation of algo 1: unormalized spectral clustering.
+        """
+        # Compute unormalized laplacian
+        L = self.compute_unormalized_laplacian()
 
-        nodes = G.nodes()
-        kmean.predict(self.G.nodes())
+        # Compute the eigenvalues and corresponding eigenvectors
+        eValues, eVectors = self.compute_eigen(L)
+
+        # K-mean clustering on the eigenvectors matrix
+        labels = self.kmean(eVectors)
+        print(np.array(labels))
 
 
     def compute_adjacency(self):
+        """
+        Compute the adjacency matrix of the graph.
+        """
         adj = nx.adjacency_matrix(self.G)
         return adj
 
-    # Compute unormalized laplacian (L=D-A)
-    def compute_laplacian(self):
+
+    def compute_unormalized_laplacian(self):
+        """
+        Compute the unormalized laplacian: L=D-A
+        """
         return nx.laplacian_matrix(self.G)
 
+
     def compute_normalized_laplacian(self):
+        """
+        Compute the normalized laplacian: L=I-D^{-1/2}AD^{-1/2}
+        """
         return nx.normalized_laplacian_matrix(self.G)
 
+
     def compute_eigen(self, M):
+        """
+        Compute eigenvectors of the given matrix M.
+        """
         M = sparse.csr_matrix(M.astype(float))
-        return sla.eigs(M.astype(float), k=self.k)
+        return sla.eigs(M, k=self.k, which='SM', return_eigenvectors=True)
+
 
     def kmean(self, M):
+        """
+        K-means prediction on given matrix.
+        """
+        # Check that values are real
         if np.iscomplex(M).all():
            raise ValueError("[Solver.kmean] Expecting real Matrix, "
                             "got complex")
         else:
             M = np.real(M)
 
+        # Apply k-means prediction
         kmeans = KMeans(n_clusters=self.k, init='k-means++', max_iter=300,
-                        n_init=10, random_state=0)
-        return kmeans.fit(M)
+                        n_init=10, random_state=0).fit(M)
+        
+        # Get associated labels of predicted clusters
+        labels = kmeans.labels_
+        return labels
+
+
 
 
 def import_graph(graphName):
+    """
+    """
     fp = os.path.join("..", "graphs_processed", graphName + ".txt")
 
     G = nx.Graph(name=graphName)
@@ -73,8 +112,11 @@ def import_graph(graphName):
         k = int(fLineSplit[4])
     return G, nVertices, nEdges, k
 
-def draw_graph(G):
 
+
+def draw_graph(G):
+    """
+    """
     # nx.draw(G, pos, with_labels=False, font_weight='bold')
     # labels = nx.get_edge_attributes(G, 'weight')
     # nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
@@ -83,13 +125,14 @@ def draw_graph(G):
     # plt.savefig("test.png")
 
 
+
 if __name__ =="__main__":
-    print("Hello there, general Kenobi")
+
+    # Import graph from txt file and create solver object
     G, nVertices, nEdges, k = import_graph("ca-AstroPh")
-
-
-
     solver = Solver(G, nVertices, nEdges, k)
+
+    # Solve with algo1
     solver.algo1()
 
 
