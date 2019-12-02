@@ -45,12 +45,12 @@ class Solver:
 
         # K-mean clustering on the eigenvectors matrix
         iprint("Performing kmean ...")
-        labels = self.kmean(eVectors)
-        dprint("Computed labels: {}".format(np.array(labels)))
+        clusters = self.kmean(eVectors)
+        dprint("Computed labels: {}".format(np.array(clusters)))
 
         # For each line, return the associated cluster
         nodes = np.array(self.G.nodes())
-        return np.stack((nodes, labels))
+        return np.stack((nodes, clusters))
 
 
     def compute_adjacency(self):
@@ -125,8 +125,8 @@ class Solver:
                         n_init=10, random_state=0).fit(M)
 
         # Get associated labels of predicted clusters
-        labels = kmeans.labels_
-        return labels
+        clusters = kmeans.labels_
+        return clusters
 
 
 
@@ -139,8 +139,8 @@ class Solver:
                                              self.nEdges, self.k))
             for out in output.T:
                 nodeID = out[0]
-                community = out[1]
-                f.write("{} {}\n".format(nodeID, community))
+                cluster = out[1]
+                f.write("{} {}\n".format(nodeID, cluster))
 
 
 
@@ -166,7 +166,9 @@ if __name__ =="__main__":
     solver.dumpOutput(graphName, output)
 
 
-    evaluator = Evaluator(solver, gridParams)
+    evaluator = Evaluator(solver)
+    metrics = evaluator.evaluate(output)
+    print(metrics)
     # evaluator.gridSearch(dumpOutputBest=True)
 
 
