@@ -14,8 +14,15 @@ import numpy as np
 
 np.set_printoptions(threshold=sys.maxsize)
 
+"""Global variables"""
+VERBOSE = True
+DEBUG = True
+
 
 class Solver:
+    """
+    A class to solve a graph problem as introduced in the statement
+    """
     def __init__(self, G, nVertices, nEdges, k):
         self.G = G
         self.adj = self.compute_adjacency()
@@ -28,23 +35,21 @@ class Solver:
         Implementation of algo 1: unormalized spectral clustering.
         """
         # Compute unormalized laplacian
+        iprint("Computing unormalized laplacian ...")
         L = self.compute_unormalized_laplacian()
 
         # Compute the eigenvalues and corresponding eigenvectors
+        iprint("Computing eigens ...")
         eValues, eVectors = self.compute_eigen(L)
-        eValues = np.real(eValues)
-        eVectors = np.real(eVectors)
 
         # K-mean clustering on the eigenvectors matrix
+        iprint("Performing kmean ...")
         labels = self.kmean(eVectors)
-        #print(np.array(labels))
+        print("Computed labels: {}".format(np.array(labels)))
 
-        # TODO: Output the clusters
         # For each line, return the associated cluster
         nodes = np.array(self.G.nodes())
         return np.stack((nodes, labels))
-
-        # TODO: return clusters
 
 
     def compute_adjacency(self):
@@ -74,13 +79,23 @@ class Solver:
         Compute eigenvectors of the given matrix M.
         """
         M = sparse.csr_matrix(M.astype(float))
-        return sla.eigs(M, k=self.k, which='SM', return_eigenvectors=True)
+        eValues, eVectors = sla.eigs(M, k=self.k, which='SM',
+                              return_eigenvectors=True)
+
+        if not np.isreal(eValues).all or np.isreal(eVectors).all:
+            raise ValueError("[compute_eigen] computed complex eigen while "
+                             "expecting real ones.")
+        return np.real(eValues), np.real(eVectors)
 
 
     # TODO: test this, should be more robust and faster
     def compute_eigen2(self, M):
         M = sparse.csr_matrix(M.astype(float))
-        return sla.eigsh(M, self.k, sigma=0, which='LM')
+        eValues, eVectors = sla.eigsh(M, self.k, sigma=0, which='LM')
+        if not np.isreal(eValues).all or np.isreal(eVectors).all:
+            raise ValueError("[compute_eigen] computed complex eigen while "
+                             "expecting real ones.")
+        return np.real(eValues), np.real(eVectors)
 
 
 
@@ -106,7 +121,9 @@ class Solver:
 
 
     def dumpOutput(self, algoName, output):
+
         fp = os.path.join("..", "results", algoName + ".txt")
+        iprint("Dumping output of {} to {} ...".format(algoName, fp))
         with open(fp, "w") as f:
             f.write("# {} {} {} {}\n".format(self.G.name, self.nVertices,
                                              self.nEdges, self.k))
@@ -114,9 +131,12 @@ class Solver:
                 nodeID = out[0]
                 community = out[1]
                 f.write("{} {}\n".format(nodeID, community))
+
+
 def import_graph(graphName):
     """
     """
+    iprint("Importing graph data ...")
     fp = os.path.join("..", "graphs_processed", graphName + ".txt")
 
     G = nx.Graph(name=graphName)
@@ -135,7 +155,6 @@ def import_graph(graphName):
     return G, nVertices, nEdges, k
 
 
-
 def draw_graph(G):
     """
     """
@@ -147,6 +166,18 @@ def draw_graph(G):
     # plt.savefig("test.png")
 
 
+def iprint(sth):
+    """
+    Info print
+    :param sth:
+    :return:
+    """
+    if VERBOSE is True:
+        print(sth)
+
+def dprint(sth):
+    if DEBUG is True:
+        print(sth)
 
 if __name__ =="__main__":
 
@@ -156,7 +187,10 @@ if __name__ =="__main__":
     solver = Solver(G, nVertices, nEdges, k)
 
     # Solve with algo1
-    output = solver.algo1()
+    try:
+        output = solver.algo1()
+    except Exception as e:
+        sys.exit(e)
     solver.dumpOutput(graphName, output)
 
 
