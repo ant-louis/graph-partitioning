@@ -16,7 +16,7 @@ np.set_printoptions(threshold=sys.maxsize)
 
 """Global variables"""
 VERBOSE = True
-DEBUG = True
+DEBUG = False
 
 
 class Solver:
@@ -45,7 +45,7 @@ class Solver:
         # K-mean clustering on the eigenvectors matrix
         iprint("Performing kmean ...")
         labels = self.kmean(eVectors)
-        print("Computed labels: {}".format(np.array(labels)))
+        dprint("Computed labels: {}".format(np.array(labels)))
 
         # For each line, return the associated cluster
         nodes = np.array(self.G.nodes())
@@ -81,18 +81,20 @@ class Solver:
         M = sparse.csr_matrix(M.astype(float))
         eValues, eVectors = sla.eigs(M, k=self.k, which='SM',
                               return_eigenvectors=True)
+        # which = "SM" (smallest magnitude)
+        # which = "SR" (smallest real part)
 
-        if not np.isreal(eValues).all or np.isreal(eVectors).all:
+        if not np.isreal(eValues).all or not np.isreal(eVectors).all:
             raise ValueError("[compute_eigen] computed complex eigen while "
                              "expecting real ones.")
         return np.real(eValues), np.real(eVectors)
 
 
-    # TODO: test this, should be more robust and faster
+    # TODO: test this, should be more robust
     def compute_eigen2(self, M):
         M = sparse.csr_matrix(M.astype(float))
         eValues, eVectors = sla.eigsh(M, self.k, sigma=0, which='LM')
-        if not np.isreal(eValues).all or np.isreal(eVectors).all:
+        if not np.isreal(eValues).all or not np.isreal(eVectors).all:
             raise ValueError("[compute_eigen] computed complex eigen while "
                              "expecting real ones.")
         return np.real(eValues), np.real(eVectors)
