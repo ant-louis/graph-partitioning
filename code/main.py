@@ -1,7 +1,7 @@
 import os, sys
 import networkx as nx
-import matplotlib.pyplot as plt
-
+from utils import import_graph, draw_graph, iprint, dprint
+from evaluator import Evaluator
 import scipy
 from scipy import linalg as la
 from scipy.sparse import linalg as sla
@@ -32,7 +32,8 @@ class Solver:
 
     def algo1(self):
         """
-        Implementation of algo 1: unormalized spectral clustering.
+        Implementation of algo 1 for Spectral Analysis: unormalized spectral
+        clustering.
         """
         # Compute unormalized laplacian
         iprint("Computing unormalized laplacian ...")
@@ -40,7 +41,7 @@ class Solver:
 
         # Compute the eigenvalues and corresponding eigenvectors
         iprint("Computing eigens ...")
-        eValues, eVectors = self.compute_eigen(L)
+        eValues, eVectors = self.compute_eigen3(L)
 
         # K-mean clustering on the eigenvectors matrix
         iprint("Performing kmean ...")
@@ -94,6 +95,13 @@ class Solver:
     def compute_eigen2(self, M):
         M = sparse.csr_matrix(M.astype(float))
         eValues, eVectors = sla.eigsh(M, self.k, sigma=0, which='LM')
+
+
+
+    def compute_eigen3(self, M):
+        M = sparse.csr_matrix(M.astype(float))
+        eValues, eVectors = sla.eigsh(M, k=self.k, which='SM', v0=(np.zeros(
+            self.nVertices) + np.finfo(np.float64).eps))
         if not np.isreal(eValues).all or not np.isreal(eVectors).all:
             raise ValueError("[compute_eigen] computed complex eigen while "
                              "expecting real ones.")
@@ -135,57 +143,19 @@ class Solver:
                 f.write("{} {}\n".format(nodeID, community))
 
 
-def import_graph(graphName):
-    """
-    """
-    iprint("Importing graph data ...")
-    fp = os.path.join("..", "graphs_processed", graphName + ".txt")
-
-    G = nx.Graph(name=graphName)
-    # with open(fp) as f:
-    edges = nx.read_edgelist(fp, comments="#", encoding="utf-8", nodetype=int)
-    # nodes = nx.read_adjlist("nodes.txt")
-    # my_graph.add_nodes_from(nodes)
-    G.add_edges_from(edges.edges())
-
-    with open(fp) as f:
-        firstLine = f.readline()
-        fLineSplit = firstLine.split(" ")
-        nVertices = int(fLineSplit[2])
-        nEdges = int(fLineSplit[3])
-        k = int(fLineSplit[4])
-    return G, nVertices, nEdges, k
-
-
-def draw_graph(G):
-    """
-    """
-    # nx.draw(G, pos, with_labels=False, font_weight='bold')
-    # labels = nx.get_edge_attributes(G, 'weight')
-    # nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
-    nx.draw_networkx_edges(G, pos=nx.spring_layout(G))
-    plt.show()
-    # plt.savefig("test.png")
-
-
-def iprint(sth):
-    """
-    Info print
-    :param sth:
-    :return:
-    """
-    if VERBOSE is True:
-        print(sth)
-
-def dprint(sth):
-    if DEBUG is True:
-        print(sth)
 
 if __name__ =="__main__":
+
+
 
     # Import graph from txt file and create solver object
     graphName = "ca-AstroPh"
     G, nVertices, nEdges, k = import_graph(graphName)
+
+    # TODO: grid search for best algo and best parameters (laplacian norm or
+    #  not, kmean or gmm, ...)
+    gridParams = [{"norm_L": True}, {"norm_L": False}]
+
     solver = Solver(G, nVertices, nEdges, k)
 
     # Solve with algo1
@@ -194,6 +164,10 @@ if __name__ =="__main__":
     except Exception as e:
         sys.exit(e)
     solver.dumpOutput(graphName, output)
+
+
+    evaluator = Evaluator(solver, gridParams)
+    # evaluator.gridSearch(dumpOutputBest=True)
 
 
 
