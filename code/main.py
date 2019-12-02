@@ -21,11 +21,29 @@ class Solver:
     def algo1(self):
         # draw_graph(G)
         L = self.compute_laplacian()
-        eValues, eVectors = self.compute_eigen(L)
-        kmean = self.kmean(eVectors)
+        eValues, eVectors = self.compute_eigen2(L)
 
-        nodes = G.nodes()
-        kmean.predict(self.G.nodes())
+        eVectors = np.real(eVectors)
+        eValues = np.real(eValues)
+
+        # evectors is U
+        C = self.kmean(eVectors)
+
+        # TODO:
+        # For each line, return the associated cluster
+        communities = C
+        nodes = np.array(self.G.nodes())
+        return np.stack((nodes, communities))
+
+    def dumpOutput(self, algoName, output):
+        fp = os.path.join("..", "results", algoName+".txt")
+        with open(fp, "w") as f:
+            f.write("# {} {} {} {}\n".format(self.G.name, self.nVertices,
+                                           self.nEdges, self.k))
+            for out in output.T:
+                nodeID = out[0]
+                community = out[1]
+                f.write("{} {}\n".format(nodeID, community))
 
 
     def compute_adjacency(self):
@@ -40,6 +58,16 @@ class Solver:
         return nx.normalized_laplacian_matrix(self.G)
 
     def compute_eigen(self, M):
+        # TODO: code of Antoine
+        pass
+
+    # TODO: test this, should be more robust and faster
+    def compute_eigen2(self, M):
+        M = sparse.csr_matrix(M.astype(float))
+        return sla.eigsh(M, self.k, sigma=0, which='LM')
+
+    # Wrong, sorted in decreasing order
+    def compute_eigen3(self, M):
         M = sparse.csr_matrix(M.astype(float))
         return sla.eigs(M.astype(float), k=self.k)
 
@@ -52,7 +80,8 @@ class Solver:
 
         kmeans = KMeans(n_clusters=self.k, init='k-means++', max_iter=300,
                         n_init=10, random_state=0)
-        return kmeans.fit(M)
+        kmeans.fit(M)
+        return kmeans.labels_
 
 
 def import_graph(graphName):
@@ -85,12 +114,14 @@ def draw_graph(G):
 
 if __name__ =="__main__":
     print("Hello there, general Kenobi")
-    G, nVertices, nEdges, k = import_graph("ca-AstroPh")
+    graphName = "ca-AstroPh"
+    G, nVertices, nEdges, k = import_graph(graphName)
 
 
 
     solver = Solver(G, nVertices, nEdges, k)
-    solver.algo1()
+    output = solver.algo1()
+    solver.dumpOutput(graphName, output)
 
 
 
