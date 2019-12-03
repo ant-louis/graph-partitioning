@@ -7,17 +7,18 @@ DEBUG = False
 
 def import_graph(graphName):
     """
+    Import the graph from the txt file.
     """
+    # Load txt file
     iprint("Importing graph data ...")
     fp = os.path.join("..", "graphs_processed", graphName + ".txt")
 
+    # Create the graph
     G = nx.Graph(name=graphName)
-    # with open(fp) as f:
     edges = nx.read_edgelist(fp, comments="#", encoding="utf-8", nodetype=int)
-    # nodes = nx.read_adjlist("nodes.txt")
-    # my_graph.add_nodes_from(nodes)
     G.add_edges_from(edges.edges())
 
+    # Get info about the graph by parsing first line of txt file
     with open(fp) as f:
         firstLine = f.readline()
         fLineSplit = firstLine.split(" ")
@@ -54,3 +55,10 @@ def dprint(sth):
 
 # TODO: implement plots here
 
+
+# FOR TEST
+if __name__ == "__main__":
+    graphName = "ca-AstroPh"
+    G, nVertices, nEdges, k = import_graph(graphName)
+    print(G.nodes())
+    print(G.egdes())
