@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 
 VERBOSE = True
-DEBUG = True
+DEBUG = False
 
 def import_graph(graphName):
     """
@@ -25,7 +25,6 @@ def import_graph(graphName):
         nVertices = int(fLineSplit[2])
         nEdges = int(fLineSplit[3])
         k = int(fLineSplit[4])
-    nx.write_gpickle(G, "test.gpickle")
     return G, nVertices, nEdges, k
 
 

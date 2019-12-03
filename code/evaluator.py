@@ -2,7 +2,9 @@ import numpy as np
 import sys
 from utils import iprint, dprint
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 import os
+
 class Evaluator:
     """
     A class to evaluate some metrics of an algorithm or of a set of
@@ -23,21 +25,26 @@ class Evaluator:
         :param output:
         :return:
         """
-        k = output.shape[1]
+
         clusters = output[1, :] # partition
         # nodeIDs = output[0, :]
         nVerticesClusters = self._get_nVertices_per_cluster(clusters)
         minCSize = self._get_min_cluster_size(nVerticesClusters)
         maxCSize = self._get_max_cluster_size(nVerticesClusters)
 
-        fCnt = self._get_frontiers(clusters)
+        fCnts = self._get_frontiers(clusters)
 
-        bindex = self._get_balance_index(nVerticesClusters, k)
+        bindex = self._get_balance_index(nVerticesClusters)
 
-        conductance = self._get_conductance(nVerticesClusters, fCnt)
+        nRatioCut = self._get_normalized_ratio_cut(clusters, fCnts)
+
+        score = self._get_ratio_cut(fCnts, nVerticesClusters)
+
+        expansion = self._get_expansion(fCnts, nVerticesClusters)
 
         return {"name":self.graphName, "min_C_size":minCSize, "max_C_size":maxCSize,
-                "conductance":conductance, "bindex":bindex}
+                "n_ratio_cut":nRatioCut, "bindex":bindex, "score":score,
+                "expansion":expansion}
 
     def _get_nVertices_per_cluster(self, clusters, stackNodeIDs=False):
         if stackNodeIDs is True:
@@ -46,6 +53,18 @@ class Evaluator:
         else:
             _, cnts = np.unique(clusters, return_counts=True)
             return cnts
+
+    def _get_ratio_cut(self, fCnts, nVerticesClusters):
+        """
+                Minimum Ratio Cut: Given = (v, E), partition v into disjoint U and W
+                such that e( U, W) /( | U | * | W|) is minimized with e(U, W) being
+                the number of edges in {(u, w) in E | u in U and w in W}.
+                Src: https://pdfs.semanticscholar.org/3627/8bf6919c6dced7d16dc0c02d725e1ed178f8.pdf
+                :return:
+                """
+        # totalV = np.array([self.nVertices for _ in range(self.k)])
+        # return np.sum(fCnts/(totalV-nVerticesClusters))
+        return np.sum(fCnts/nVerticesClusters)
 
     def _get_frontiers(self, clusters):
         frontiers = np.zeros(self.k)
@@ -86,52 +105,63 @@ class Evaluator:
         """
         return max(self._get_nVertices_per_cluster(clusters))
 
+    def _get_balance_index(self, nVerticesClusters):
+        return max(nVerticesClusters)/(self.nVertices/self.k)
 
-    def _get_balance_index(self, nVerticesClusters, k):
-        return max(nVerticesClusters/(self.nVertices/k))
+    def _get_expansion(self, fCnts, nVerticesClusters):
 
-    def _get_conductance(self, nVerticesClusters, fCnt):
+        return max(fCnts / nVerticesClusters)
+
+    def _get_normalized_ratio_cut(self, clusters, fCnts):
         """
-        :param nVerticesClusters: number of vertices within each cluster
-        :param fCnt: frontier count
-        :return:
+        Ratio between the number of cut edges and the volume of the smallest part
         """
-        minCnts = np.array([min(cnt, self.nVertices - cnt) for cnt in
-                               nVerticesClusters])
-        return np.sum(fCnt / minCnts)
+        # minCnts = np.array([min(cnt, self.nVertices - cnt) for cnt in
+        #                        nVerticesClusters])
+        # return np.sum(fCnt / minCnts)
+        degreeNodes = np.array(self.solver.adj.sum(axis=0))[0]
+        degreeClusters = np.zeros(self.k)
+        for nodeID, clusterID in enumerate(clusters):
+            degreeClusters[clusterID] += degreeNodes[nodeID]
+        cut = fCnts
+        volume = degreeClusters
+        # volume = np.multiply(degreeClusters, nVerticesClusters)
+        return np.sum(cut/volume)
 
 
-    def gridSearch(self, gridParams, dumpOutputBest=True, makeBarPlot=False):
+
+
+    def gridSearch(self, gridParams, dumpOutputBest=True, barPlots=("score")):
         """
         Perform parameters optimization to find best algorithm for a given
         graph partitioning problem instance.
         :param dumpOutputBest: if we should write in a .txt the result of
         the best parameter set or not.
-        :param makeBarPlot: if we should make a bar plot of the metrics results
+        :param barPlot: a list of type of bar plots (metrics) that should be
+        made to compare the algorithms
         :return: (best parameters, bestMetrics, bestOutput), save output on
         fs if option is set to True
         """
 
         allMetrics = []
         bestOutput = None
-        bestMetrics = {"conductance":float("inf")}
+        bestMetrics = {"n_ratio_cut":float("inf"), "score": float("inf")}
         bestParams = None
-        iprint("\nPerforming grid search ...\n=========================")
-        try:
-            for i, params in enumerate(gridParams):
+        iprint("\nPerforming grid search on {} "
+               "...\n=======================================".format(self.graphName))
 
-                iprint("\nAlgorithm {} with params = {}:\n-------------------------------------------------------\n".format(i, params))
-                output = self.solver.make_clusters(params)
-                metrics = self.evaluate(output)
+        for i, params in enumerate(gridParams):
 
-                if metrics["conductance"] < bestMetrics["conductance"]:
-                    bestOutput = output
-                    bestMetrics = metrics
-                    bestParams = params
-                print(metrics)
-                allMetrics.append(metrics)
-        except Exception as e:
-            sys.exit("Grid search failed: {}".format(e))
+            iprint("\nAlgorithm {} with params = {}:\n-------------------------------------------------------\n".format(i+1, params))
+            output = self.solver.make_clusters(params)
+            metrics = self.evaluate(output)
+
+            if metrics["score"] < bestMetrics["score"]:
+                bestOutput = output
+                bestMetrics = metrics
+                bestParams = params
+            print(metrics)
+            allMetrics.append(metrics)
 
 
         print("\nEnd of gridsearch: best parameters were {} with "
@@ -140,38 +170,60 @@ class Evaluator:
         if dumpOutputBest is True:
             self.solver.dumpOutput(self.graphName, bestOutput)
 
+        if barPlots is None or len(barPlots) == 0:
+            return bestParams, bestMetrics, bestOutput
+        else:
+            if "score" in barPlots:
+                y = [m["score"] for m in allMetrics]
+                self.barPlot(y, gridParams, "Score")
+            if "n_ratio_cut" in barPlots:
+                y = [m["n_ratio_cut"] for m in allMetrics]
+                self.barPlot(y, gridParams, "Normalized Ratio Cut")
+            if "expansion" in barPlots:
+                y = [m["expansion"] for m in allMetrics]
+                self.barPlot(y, gridParams, "Expansion")
+            if "bindex" in barPlots:
+                y = [m["bindex"] for m in allMetrics]
+                self.barPlot(y, gridParams, "Balance index")
+            if "max_C_size" in barPlots:
+                y = [m["max_C_size"] for m in allMetrics]
+                self.barPlot(y, gridParams, "Maximum cluster size")
+            if "min_C_size" in barPlots:
+                y = [m["min_C_size"] for m in allMetrics]
+                self.barPlot(y, gridParams, "Minimum cluster size")
 
-        if makeBarPlot is True:
-            self.barPlot(gridParams, allMetrics)
+            return bestParams, bestMetrics, bestOutput
 
-        return bestParams, bestMetrics, bestOutput
+    def barPlot(self, y, allParams, ylabel):
 
-    def barPlot(self, allParams, allMetrics):
-
-        labels = [str(p) for p in allParams]
-        conductances = [m["conductance"] for m in allMetrics]
+        # labels = [str(p) for p in allParams]
+        labels = ["alg {}".format(i+1) for i in range(len(allParams))]
+        # index = np.arange(len(labels))
         index = np.arange(len(labels))
-
         fig, ax = plt.subplots()
-        rects = ax.bar(index, conductances)
+        rects = ax.bar(index, y)
+
+        plt.subplots_adjust(bottom=0.23)
 
         # Add text on top of bar:
         self._autolabel(rects, ax)
 
         ax.set_xlabel('Set of parameters', fontsize=20)
-        ax.set_ylabel('Conductance', fontsize=20)
+        ax.set_ylabel(ylabel, fontsize=20)
         # ax.set_xticks(index, labels)
         # ax.xaxis.set_tick_params(labelsize=8, rotation=30)
         # ax.set_xticklabels(labels, fontsize=8) # , labelrotation=30
-        plt.xticks(index, labels, fontsize=12) # , rotation=45
 
-        plt.title('Conductance on {} per parameter sets'.format(
+        idxTick = [r.get_x() + r.get_width() / 2 for r in rects]
+        plt.xticks(idxTick, labels, fontsize=12, ha='center') # , rotation=45
+
+        plt.title(ylabel+' on {} per parameter sets'.format(
             self.graphName), fontsize=15)
 
         dirPath = os.path.dirname(os.path.realpath(__file__))
         dp = os.path.join(dirPath, "..", "plots")
-        print(dp)
-        fp = os.path.join(dp ,"barplot-"+self.graphName+".png")
+
+        fp = os.path.join(dp ,"barplot-"+ylabel.lower()+"-"+self.graphName+".png")
         if not os.path.exists(dp):
             os.mkdir(dp)
         plt.savefig(fp)
@@ -181,7 +233,7 @@ class Evaluator:
         """Attach a text label above each bar in *rects*, displaying its height."""
         for rect in rects:
             height = rect.get_height()
-            ax.annotate('{}'.format(height),
+            ax.annotate('{0:.3f}'.format(height),
                         xy=(rect.get_x() + rect.get_width() / 2, height),
                         xytext=(0, 3),  # 3 points vertical offset
                         textcoords="offset points",

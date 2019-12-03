@@ -43,7 +43,7 @@ class Solver:
 
         # Compute the eigenvalues and corresponding eigenvectors
         iprint("Computing eigens ...")
-        eValues, eVectors = self.compute_eigen2(L, params["normalized_spectral_clustering"])
+        eValues, eVectors = self.compute_eigen(L, params["eigen_norm"])
 
         dprint("evalues = {}".format(eValues))
 
@@ -77,34 +77,24 @@ class Solver:
         elif type == "unormalized":
             return nx.laplacian_matrix(self.G)
         elif type == "normalized_random_walk":
-            return nx.directed_laplacian_matrix(G,walk_type="random",
-                                               alpha=0.95)
+            degreeNodes = np.array(self.adj.sum(axis=0))[0]
+
+            # Let's reverse the diagonal matrix (equivalent to invert its
+            # diagonal elements)
+            invDegreeNodes = 1 / degreeNodes
+            i = np.arange(self.nVertices)
+            invD = sparse.csr_matrix((invDegreeNodes, (i, i)),
+                                     shape=self.adj.shape)
+
+            I = sparse.identity(n=self.nVertices)
+            return I - invD * self.adj
         else:
             raise ValueError("[compute_laplacian] Unknown type {} "
                              "provided".format(type))
 
-
     def compute_eigen(self, M, normalization=None):
-        """
-        Compute eigenvectors of the given matrix M.
-        """
         M = sparse.csr_matrix(M.astype(float))
-        eValues, eVectors = sla.eigs(M, k=self.k, which='SM',
-                              return_eigenvectors=True)
-        # which = "SM" (smallest magnitude)
-        # which = "SR" (smallest real part)
-
-        if not np.isreal(eValues).all or not np.isreal(eVectors).all:
-            raise ValueError("[compute_eigen] computed complex eigen while "
-                             "expecting real ones.")
-
-        if normalization is not None:
-            eVectors = self._normalize(eVectors, normalization)
-        return np.real(eValues), np.real(eVectors)
-
-
-    def compute_eigen2(self, M, normalization=None):
-        M = sparse.csr_matrix(M.astype(float))
+        # sla.eigs
         eValues, eVectors = sla.eigsh(M, k=self.k, which='SM', v0=(np.zeros(
             self.nVertices) + np.finfo(np.float64).eps))
         if not np.isreal(eValues).all or not np.isreal(eVectors).all:
@@ -172,7 +162,7 @@ class Solver:
 if __name__ =="__main__":
 
     # Import graph from txt file and create solver object
-    graphName = "ca-AstroPh"
+    graphName = "ca-CondMat"
     G, nVertices, nEdges, k = import_graph(graphName)
 
     # TODO: grid search for best algo and best parameters (laplacian norm or
@@ -198,13 +188,23 @@ if __name__ =="__main__":
     # Grid search on ca-AstroPh.txt
     # ---------------------------------
     gridParams = [
-        {"L": "normalized", "normalized_spectral_clustering": "l1"},
-        {"L": "unormalized", "normalized_spectral_clustering":None},
+        {"L": "unormalized", "eigen_norm": None},
+        {"L": "unormalized", "eigen_norm": "l1"},
+        {"L": "unormalized", "eigen_norm": "l2"},
+
+        {"L": "normalized", "eigen_norm": None},
+        {"L": "normalized", "eigen_norm": "l1"},
+        {"L": "normalized", "eigen_norm": "l2"},
+
+        {"L": "normalized_random_walk", "eigen_norm": None},
+        {"L": "normalized_random_walk", "eigen_norm": "l1"},
+        {"L": "normalized_random_walk", "eigen_norm":"l2"},
+
     ]
     try:
         evaluator = Evaluator(solver)
         bestParams, bestMetrics, bestOutput = evaluator.gridSearch(
-            gridParams, makeBarPlot=True, dumpOutputBest=True)
+            gridParams, dumpOutputBest=True, barPlots=["score", "n_ratio_cut"])
     except Exception as e:
         sys.exit(e)
 
