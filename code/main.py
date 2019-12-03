@@ -136,7 +136,8 @@ class Solver:
         return clusters
 
     def dumpOutput(self, algoName, output):
-
+        """
+        """
         fp = os.path.join("..", "results", algoName + ".txt")
         iprint("Dumping output of {} to {} ...".format(algoName, fp))
         with open(fp, "w") as f:
