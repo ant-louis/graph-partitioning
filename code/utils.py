@@ -3,8 +3,7 @@ import os
 import matplotlib.pyplot as plt
 
 VERBOSE = True
-DEBUG = True
-
+DEBUG = False
 
 def import_graph(graphName):
     """
@@ -31,6 +30,7 @@ def import_graph(graphName):
 
 def draw_graph(G):
     """
+    Draw the graph
     """
     # nx.draw(G, pos, with_labels=False, font_weight='bold')
     # labels = nx.get_edge_attributes(G, 'weight')
