@@ -6,7 +6,6 @@ import scipy
 from scipy import linalg as la
 from scipy.sparse import linalg as sla
 import scipy.sparse as sparse
-
 import pandas as pd
 
 from sklearn.cluster import KMeans
@@ -14,7 +13,7 @@ import numpy as np
 
 np.set_printoptions(threshold=sys.maxsize)
 
-"""Global variables"""
+"""Global variables used for information and debug msges prints"""
 VERBOSE = True
 DEBUG = False
 
@@ -30,14 +29,16 @@ class Solver:
         self.nEdges = nEdges
         self.k = k
 
-    def algo1(self):
+    def partition(self, params):
         """
         Implementation of algo 1 for Spectral Analysis: unormalized spectral
         clustering.
         """
         # Compute unormalized laplacian
-        iprint("Computing unormalized laplacian ...")
-        L = self.compute_unormalized_laplacian()
+        iprint("Computing laplacian (normalized = {})...".format(params[
+                                                                     "norm_L"]))
+
+        L = self.compute_laplacian(params["norm_L"])
 
         # Compute the eigenvalues and corresponding eigenvectors
         iprint("Computing eigens ...")
@@ -61,18 +62,16 @@ class Solver:
         return adj
 
 
-    def compute_unormalized_laplacian(self):
+    def compute_laplacian(self, normalize):
         """
-        Compute the unormalized laplacian: L=D-A
+        Compute the Laplacian L
+        :param normalize: if true: L = L=I-D^{-1/2}AD^{-1/2}, otherwise L = D-A
+        :return: L
         """
-        return nx.laplacian_matrix(self.G)
-
-
-    def compute_normalized_laplacian(self):
-        """
-        Compute the normalized laplacian: L=I-D^{-1/2}AD^{-1/2}
-        """
-        return nx.normalized_laplacian_matrix(self.G)
+        if normalize is True:
+            return nx.normalized_laplacian_matrix(self.G)
+        else:
+            return nx.laplacian_matrix(self.G)
 
 
     def compute_eigen(self, M):
@@ -91,7 +90,7 @@ class Solver:
         return np.real(eValues), np.real(eVectors)
 
 
-    # TODO: test this, should be more robust
+    # does not work well
     def compute_eigen2(self, M):
         M = sparse.csr_matrix(M.astype(float))
         eValues, eVectors = sla.eigsh(M, self.k, sigma=0, which='LM')
@@ -128,8 +127,6 @@ class Solver:
         clusters = kmeans.labels_
         return clusters
 
-
-
     def dumpOutput(self, algoName, output):
 
         fp = os.path.join("..", "results", algoName + ".txt")
@@ -156,23 +153,24 @@ if __name__ =="__main__":
     #  not, kmean or gmm, ...)
     gridParams = [{"norm_L": True}, {"norm_L": False}]
 
+
     solver = Solver(G, nVertices, nEdges, k)
 
+
+    # Simple test of a single algorithm
+    # ---------------------------------
+    params = {"norm_L":False}
     # Solve with algo1
     try:
-        output = solver.algo1()
+        output = solver.partition(params)
     except Exception as e:
         sys.exit(e)
     solver.dumpOutput(graphName, output)
-
 
     evaluator = Evaluator(solver)
     metrics = evaluator.evaluate(output)
     print(metrics)
     # evaluator.gridSearch(dumpOutputBest=True)
-
-
-
 
 
 

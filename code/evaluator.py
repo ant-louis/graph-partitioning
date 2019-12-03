@@ -86,7 +86,7 @@ class Evaluator:
         :param fCnt: frontier count
         :return:
         """
-        minCnts = np.array([min(c, self.nVertices - c) for c in
+        minCnts = np.array([min(cnt, self.nVertices - cnt) for cnt in
                                nVerticesClusters])
         return np.sum(fCnt / minCnts)
 
@@ -100,7 +100,7 @@ class Evaluator:
         """
 
         # TODO: iterate over gridParam
-        output = self.solver.algo1()
+        output = self.solver.partition()
         print("Best parameters were {} with algo {}")
         self.solver.dumpOutput("{}-{}-{}".format(self.name, 1, 2),
                                output)
