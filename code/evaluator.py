@@ -42,9 +42,11 @@ class Evaluator:
 
         expansion = self._get_expansion(fCnts, nVerticesClusters)
 
+        conductance = self._get_conductance(nVerticesClusters, fCnts)
+
         return {"name":self.graphName, "min_C_size":minCSize, "max_C_size":maxCSize,
                 "n_ratio_cut":nRatioCut, "bindex":bindex, "score":score,
-                "expansion":expansion}
+                "expansion":expansion, "conductance":conductance}
 
     def _get_nVertices_per_cluster(self, clusters, stackNodeIDs=False):
         if stackNodeIDs is True:
@@ -111,6 +113,11 @@ class Evaluator:
     def _get_expansion(self, fCnts, nVerticesClusters):
 
         return max(fCnts / nVerticesClusters)
+
+    def _get_conductance(self, nVerticesClusters, fCnts):
+        denum = np.array(
+            [min(cnt, self.nVertices - cnt) for cnt in nVerticesClusters])
+        return np.sum(fCnts / denum)
 
     def _get_normalized_ratio_cut(self, clusters, fCnts):
         """

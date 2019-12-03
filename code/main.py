@@ -138,7 +138,7 @@ class Solver:
 
         # Apply k-means prediction
         kmeans = KMeans(n_clusters=self.k, init='k-means++', max_iter=300,
-                        n_init=15, random_state=0).fit(M)
+                        n_init=15, random_state=0, n_jobs=-1).fit(M)
 
         # Get associated labels of predicted clusters
         clusters = kmeans.labels_
