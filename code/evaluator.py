@@ -158,17 +158,24 @@ class Evaluator:
         # Add text on top of bar:
         self._autolabel(rects, ax)
 
-        ax.set_xlabel('Set of parameters', fontsize=10)
-        ax.set_ylabel('Conductance', fontsize=10)
+        ax.set_xlabel('Set of parameters', fontsize=20)
+        ax.set_ylabel('Conductance', fontsize=20)
         # ax.set_xticks(index, labels)
         # ax.xaxis.set_tick_params(labelsize=8, rotation=30)
-        ax.set_xticklabels(labels, fontsize=8, rotation=30)
-
+        # ax.set_xticklabels(labels, fontsize=8) # , labelrotation=30
+        plt.xticks(index, labels, fontsize=12) # , rotation=45
 
         plt.title('Conductance on {} per parameter sets'.format(
-            self.graphName))
+            self.graphName), fontsize=15)
         fig.tight_layout()
-        plt.savefig(os.path.join("..", "plots","barplot-"+self.graphName+".png"))
+
+        dirPath = os.path.dirname(os.path.realpath(__file__))
+        dp = os.path.join(dirPath, "..", "plots")
+        print(dp)
+        fp = os.path.join(dp ,"barplot-"+self.graphName+".png")
+        if not os.path.exists(dp):
+            os.mkdir(dp)
+        plt.savefig(fp)
         plt.show()
 
     def _autolabel(self, rects, ax):
