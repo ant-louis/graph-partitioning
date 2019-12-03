@@ -27,13 +27,6 @@ class Solver:
         # TODO: following not even required:
         self.adj = self.compute_adjacency()
 
-        dprint("{},{},{},{},{}, wrong: {}".format(self.adj[0, 8832],
-                                                 self.adj[0, 15873],
-                                      self.adj[0, 12075], self.adj[12075 ,
-                                                                   0],
-                                      self.adj[0, 516], self.adj[0, 0]))
-
-
         self.nVertices = nVertices
         self.nEdges = nEdges
         self.k = k
