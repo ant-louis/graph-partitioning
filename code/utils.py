@@ -54,11 +54,3 @@ def dprint(sth):
 
 
 # TODO: implement plots here
-
-
-# FOR TEST
-if __name__ == "__main__":
-    graphName = "ca-AstroPh"
-    G, nVertices, nEdges, k = import_graph(graphName)
-    print(G.nodes())
-    print(G.egdes())
