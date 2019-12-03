@@ -26,7 +26,6 @@ class Solver:
         self.G = G
         # TODO: following not even required:
         self.adj = self.compute_adjacency()
-
         self.nVertices = nVertices
         self.nEdges = nEdges
         self.k = k
@@ -82,8 +81,6 @@ class Solver:
         else:
             raise ValueError("[compute_laplacian] Unknown type {} "
                              "provided".format(type))
-
-
 
 
     def compute_eigen(self, M):

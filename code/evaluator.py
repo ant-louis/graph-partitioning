@@ -2,12 +2,18 @@ import numpy as np
 
 
 class Evaluator:
+    """
+    A class to evaluate some metrics of an algorithm or of a set of
+    algorithm by performing a grid search to find the best suitable
+    algorthm/parameters *for a given graph problem instance*.
+    """
 
     def __init__(self, solver):
         self.solver = solver
         self.nVertices = solver.nVertices
         self.name = solver.G.name
         self.edges = solver.G.edges()
+        self.k = solver.k
 
     def evaluate(self, output):
         """
@@ -19,7 +25,6 @@ class Evaluator:
         clusters = output[1, :] # partition
         # nodeIDs = output[0, :]
         nVerticesClusters = self._get_nVertices_per_cluster(clusters)
-
         minCSize = self._get_min_cluster_size(nVerticesClusters)
         maxCSize = self._get_max_cluster_size(nVerticesClusters)
 
@@ -41,7 +46,7 @@ class Evaluator:
             return cnts
 
     def _get_frontiers(self, clusters):
-        frontiers = np.zeros(self.solver.k)
+        frontiers = np.zeros(self.k)
         for edge in self.edges:
             v1, v2 = edge
             if clusters[v1] != clusters[v2]:
@@ -57,6 +62,7 @@ class Evaluator:
         """
         return min(nVerticesClusters)
 
+
     def _get_max_cluster_size(self, nVerticesClusters):
         """
         Fast private implementation
@@ -64,6 +70,8 @@ class Evaluator:
         :return: size of largest community
         """
         return max(nVerticesClusters)
+
+
     def get_min_cluster_size(self, clusters):
         """
         :return: size of smallest community
