@@ -30,7 +30,7 @@ class Solver:
         self.nEdges = nEdges
         self.k = k
 
-    def partition(self, params):
+    def make_clusters(self, params):
         """
         Implementation of algo 1 for Spectral Analysis: unormalized spectral
         clustering.
@@ -159,25 +159,36 @@ if __name__ =="__main__":
 
     # TODO: grid search for best algo and best parameters (laplacian norm or
     #  not, kmean or gmm, ...)
-    gridParams = [{"L": "unormalized"}, {"L": "normalized"}]
 
 
     solver = Solver(G, nVertices, nEdges, k)
 
 
-    # Simple test of a single algorithm
+    # # Simple test of a single algorithm
+    # # ---------------------------------
+    # params = {"L":"unormalized"}
+    # try:
+    #     output = solver.make_clusters(params)
+    # except Exception as e:
+    #     sys.exit(e)
+    # solver.dumpOutput(graphName, output)
+    #
+    # evaluator = Evaluator(solver)
+    # metrics = evaluator.evaluate(output)
+    # print(metrics)
+
+    # Grid search on ca-AstroPh.txt
     # ---------------------------------
-    params = {"L":"unormalized"}
+    gridParams = [
+        {"L": "unormalized"},
+        {"L":"normalized"}
+    ]
     try:
-        output = solver.partition(params)
+        evaluator = Evaluator(solver)
+        bestParams, bestMetrics, bestOutput = evaluator.gridSearch(
+            gridParams, makeBarPlot=True, dumpOutputBest=True)
     except Exception as e:
         sys.exit(e)
-    solver.dumpOutput(graphName, output)
-
-    evaluator = Evaluator(solver)
-    metrics = evaluator.evaluate(output)
-    print(metrics)
-    # evaluator.gridSearch(dumpOutputBest=True)
 
 
 

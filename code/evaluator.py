@@ -1,6 +1,8 @@
 import numpy as np
-
-
+import sys
+from utils import iprint, dprint
+import matplotlib.pyplot as plt
+import os
 class Evaluator:
     """
     A class to evaluate some metrics of an algorithm or of a set of
@@ -11,7 +13,7 @@ class Evaluator:
     def __init__(self, solver):
         self.solver = solver
         self.nVertices = solver.nVertices
-        self.name = solver.G.name
+        self.graphName = solver.G.name
         self.edges = solver.G.edges()
         self.k = solver.k
 
@@ -34,7 +36,7 @@ class Evaluator:
 
         conductance = self._get_conductance(nVerticesClusters, fCnt)
 
-        return {"name":self.name, "min_C_size":minCSize, "max_C_size":maxCSize,
+        return {"name":self.graphName, "min_C_size":minCSize, "max_C_size":maxCSize,
                 "conductance":conductance, "bindex":bindex}
 
     def _get_nVertices_per_cluster(self, clusters, stackNodeIDs=False):
@@ -101,27 +103,80 @@ class Evaluator:
 
     def gridSearch(self, gridParams, dumpOutputBest=True, makeBarPlot=False):
         """
-        Perform parameter optimization to find best algorithm with the right set of parameters
-        :param dumpOutputBest: if we should write in a .txt only the result
-        of the best parameter set or not.
-        :return: best parameters dictionary, save files on fs
+        Perform parameters optimization to find best algorithm for a given
+        graph partitioning problem instance.
+        :param dumpOutputBest: if we should write in a .txt the result of
+        the best parameter set or not.
+        :param makeBarPlot: if we should make a bar plot of the metrics results
+        :return: (best parameters, bestMetrics, bestOutput), save output on
+        fs if option is set to True
         """
 
-        # TODO: iterate over gridParam
-        output = self.solver.partition()
-        print("Best parameters were {} with algo {}")
-        self.solver.dumpOutput("{}-{}-{}".format(self.name, 1, 2),
-                               output)
+        allMetrics = []
+        bestOutput = None
+        bestMetrics = {"conductance":float("inf")}
+        bestParams = None
+        iprint("\nPerforming grid search ...\n=========================")
+        try:
+            for i, params in enumerate(gridParams):
+
+                iprint("\nAlgorithm {} with params = {}:\n-------------------------------------------------------\n".format(i, params))
+                output = self.solver.make_clusters(params)
+                metrics = self.evaluate(output)
+
+                if metrics["conductance"] < bestMetrics["conductance"]:
+                    bestOutput = output
+                    bestMetrics = metrics
+                    bestParams = params
+
+                allMetrics.append(metrics)
+        except Exception as e:
+            sys.exit("Grid search failed: {}".format(e))
+
+
+        print("\nEnd of gridsearch: best parameters were {} with "
+              "metrics = {}".format(bestParams, bestMetrics))
+
+        if dumpOutputBest is True:
+            self.solver.dumpOutput(self.graphName, bestOutput)
 
 
         if makeBarPlot is True:
-            # TODO make bar plot of score of each parameter set
-            pass
+            self.barPlot(gridParams, allMetrics)
 
-        bestParam = {"sth":3, "sth2":3}
-        return bestParam
+        return bestParams, bestMetrics, bestOutput
 
-    def plot(self, sth):
-        # TODO
-        pass
+    def barPlot(self, allParams, allMetrics):
 
+        labels = [str(p) for p in allParams]
+        conductances = [m["conductance"] for m in allMetrics]
+        index = np.arange(len(labels))
+
+        fig, ax = plt.subplots()
+        rects = ax.bar(index, conductances)
+
+        # Add text on top of bar:
+        self._autolabel(rects, ax)
+
+        ax.set_xlabel('Set of parameters', fontsize=10)
+        ax.set_ylabel('Conductance', fontsize=10)
+        # ax.set_xticks(index, labels)
+        # ax.xaxis.set_tick_params(labelsize=8, rotation=30)
+        ax.set_xticklabels(labels, fontsize=8, rotation=30)
+
+
+        plt.title('Conductance on {} per parameter sets'.format(
+            self.graphName))
+        fig.tight_layout()
+        plt.savefig(os.path.join("..", "plots","barplot-"+self.graphName+".png"))
+        plt.show()
+
+    def _autolabel(self, rects, ax):
+        """Attach a text label above each bar in *rects*, displaying its height."""
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate('{}'.format(height),
+                        xy=(rect.get_x() + rect.get_width() / 2, height),
+                        xytext=(0, 3),  # 3 points vertical offset
+                        textcoords="offset points",
+                        ha='center', va='bottom')
