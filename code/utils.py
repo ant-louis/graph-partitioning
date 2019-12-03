@@ -50,8 +50,10 @@ def iprint(sth):
         print(sth)
 
 def dprint(sth):
+    """
+    Debug print
+    :param sth:
+    :return:
+    """
     if DEBUG is True:
         print(sth)
-
-
-# TODO: implement plots here
