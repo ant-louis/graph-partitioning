@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 
 VERBOSE = True
-DEBUG = False
+DEBUG = True
 
 def import_graph(graphName):
     """

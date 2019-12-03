@@ -9,6 +9,7 @@ import scipy.sparse as sparse
 import pandas as pd
 
 from sklearn.cluster import KMeans
+from sklearn.preprocessing import normalize
 import numpy as np
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -83,7 +84,7 @@ class Solver:
                              "provided".format(type))
 
 
-    def compute_eigen(self, M, normalize=False):
+    def compute_eigen(self, M, normalization=None):
         """
         Compute eigenvectors of the given matrix M.
         """
@@ -97,30 +98,42 @@ class Solver:
             raise ValueError("[compute_eigen] computed complex eigen while "
                              "expecting real ones.")
 
-        if normalize:
-            eVectors = self._normalize(eVectors)
+        if normalization is not None:
+            eVectors = self._normalize(eVectors, normalization)
         return np.real(eValues), np.real(eVectors)
 
 
-    def compute_eigen2(self, M, normalize=False):
+    def compute_eigen2(self, M, normalization=None):
         M = sparse.csr_matrix(M.astype(float))
         eValues, eVectors = sla.eigsh(M, k=self.k, which='SM', v0=(np.zeros(
             self.nVertices) + np.finfo(np.float64).eps))
         if not np.isreal(eValues).all or not np.isreal(eVectors).all:
             raise ValueError("[compute_eigen] computed complex eigen while "
                              "expecting real ones.")
-        if normalize:
-            eVectors = self._normalize(eVectors)
+        if normalize is not None:
+            eVectors = self._normalize(eVectors, normalization)
 
         return np.real(eValues), np.real(eVectors)
 
-    def _normalize(self, M):
-        # Compute l_2 norm
-        norm = np.sqrt((M * M).sum(axis=1))
-        for i in range(M.shape[0]):
-            for j in range(M.shape[1]):
-                M[i, j] /= norm[i]
-        return M
+
+    def _normalize(self, M, type):
+        if type == "l1":
+            # L1 norm (sum of rows = 1)
+            return normalize(M, axis=1, norm='l1')
+        elif type == "l2":
+            norm = np.sqrt((M * M).sum(axis=1))
+            for i in range(M.shape[0]):
+                for j in range(M.shape[1]):
+                    M[i, j] /= norm[i]
+            return M
+        elif type == "degree":
+            # TODO
+            pass
+        elif type is None:
+            return M
+        else:
+            raise ValueError("unknown norm type")
+
 
     def kmean(self, M):
         """
@@ -134,7 +147,7 @@ class Solver:
             M = np.real(M)
 
         # Apply k-means prediction
-        kmeans = KMeans(n_clusters=self.k, init='k-means++', max_iter=400,
+        kmeans = KMeans(n_clusters=self.k, init='k-means++', max_iter=300,
                         n_init=15, random_state=0).fit(M)
 
         # Get associated labels of predicted clusters
@@ -185,8 +198,8 @@ if __name__ =="__main__":
     # Grid search on ca-AstroPh.txt
     # ---------------------------------
     gridParams = [
-        {"L": "normalized", "normalized_spectral_clustering": True},
-        {"L": "unormalized", "normalized_spectral_clustering":False},
+        {"L": "normalized", "normalized_spectral_clustering": "l1"},
+        {"L": "unormalized", "normalized_spectral_clustering":None},
     ]
     try:
         evaluator = Evaluator(solver)

@@ -128,7 +128,7 @@ class Evaluator:
                     bestOutput = output
                     bestMetrics = metrics
                     bestParams = params
-
+                print(metrics)
                 allMetrics.append(metrics)
         except Exception as e:
             sys.exit("Grid search failed: {}".format(e))
