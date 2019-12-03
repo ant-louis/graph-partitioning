@@ -35,10 +35,9 @@ class Solver:
         clustering.
         """
         # Compute unormalized laplacian
-        iprint("Computing laplacian (normalized = {})...".format(params[
-                                                                     "norm_L"]))
+        iprint("Computing laplacian of type {}...".format(params["L"]))
 
-        L = self.compute_laplacian(params["norm_L"])
+        L = self.compute_laplacian(params["L"])
 
         # Compute the eigenvalues and corresponding eigenvectors
         iprint("Computing eigens ...")
@@ -62,16 +61,25 @@ class Solver:
         return adj
 
 
-    def compute_laplacian(self, normalize):
+    def compute_laplacian(self, type):
         """
         Compute the Laplacian L
+        src code of library: https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/linalg/laplacianmatrix.html
         :param normalize: if true: L = L=I-D^{-1/2}AD^{-1/2}, otherwise L = D-A
         :return: L
         """
-        if normalize is True:
+        if type == "normalized":
             return nx.normalized_laplacian_matrix(self.G)
-        else:
+        elif type == "unormalized":
             return nx.laplacian_matrix(self.G)
+        elif type == "normalized_random_walk":
+            return nx.directed_laplacian_matrix(G,walk_type="random",
+                                               alpha=0.95)
+        else:
+            raise ValueError("[compute_laplacian] Unknown type {} "
+                             "provided".format(type))
+
+
 
 
     def compute_eigen(self, M):
@@ -120,8 +128,8 @@ class Solver:
             M = np.real(M)
 
         # Apply k-means prediction
-        kmeans = KMeans(n_clusters=self.k, init='k-means++', max_iter=300,
-                        n_init=10, random_state=0).fit(M)
+        kmeans = KMeans(n_clusters=self.k, init='k-means++', max_iter=400,
+                        n_init=15, random_state=0).fit(M)
 
         # Get associated labels of predicted clusters
         clusters = kmeans.labels_
@@ -151,7 +159,7 @@ if __name__ =="__main__":
 
     # TODO: grid search for best algo and best parameters (laplacian norm or
     #  not, kmean or gmm, ...)
-    gridParams = [{"norm_L": True}, {"norm_L": False}]
+    gridParams = [{"L": "unormalized"}, {"L": "normalized"}]
 
 
     solver = Solver(G, nVertices, nEdges, k)
@@ -159,8 +167,7 @@ if __name__ =="__main__":
 
     # Simple test of a single algorithm
     # ---------------------------------
-    params = {"norm_L":False}
-    # Solve with algo1
+    params = {"L":"unormalized"}
     try:
         output = solver.partition(params)
     except Exception as e:
