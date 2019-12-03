@@ -9,7 +9,7 @@ class Evaluator:
     """
     A class to evaluate some metrics of an algorithm or of a set of
     algorithm by performing a grid search to find the best suitable
-    algorthm/parameters *for a given graph problem instance*.
+    algorithm/parameters *for a given graph problem instance*.
     """
 
     def __init__(self, solver):
@@ -22,8 +22,8 @@ class Evaluator:
     def evaluate(self, output):
         """
         Compute some metrics for a given community partitioning and graph data
-        :param output:
-        :return:
+        :param output: output of the solver.make_clustering method
+        :return metrics: dictionary-like metrics
         """
 
         clusters = output[1, :] # partition
@@ -32,12 +32,16 @@ class Evaluator:
         minCSize = self._get_min_cluster_size(nVerticesClusters)
         maxCSize = self._get_max_cluster_size(nVerticesClusters)
 
+        # Compute cut
         fCnts = self._get_frontiers(clusters)
 
+        # Compute balance index
         bindex = self._get_balance_index(nVerticesClusters)
 
+        # Compute normalized ratio cut
         nRatioCut = self._get_normalized_ratio_cut(clusters, fCnts)
 
+        # Compute ratio cut
         score = self._get_ratio_cut(fCnts, nVerticesClusters)
 
         expansion = self._get_expansion(fCnts, nVerticesClusters)
@@ -58,17 +62,18 @@ class Evaluator:
 
     def _get_ratio_cut(self, fCnts, nVerticesClusters):
         """
-                Minimum Ratio Cut: Given = (v, E), partition v into disjoint U and W
-                such that e( U, W) /( | U | * | W|) is minimized with e(U, W) being
-                the number of edges in {(u, w) in E | u in U and w in W}.
-                Src: https://pdfs.semanticscholar.org/3627/8bf6919c6dced7d16dc0c02d725e1ed178f8.pdf
-                :return:
-                """
-        # totalV = np.array([self.nVertices for _ in range(self.k)])
-        # return np.sum(fCnts/(totalV-nVerticesClusters))
+        The objective function that we need to minimize in the statement.
+        Minimum Ratio Cut: Given = (v, E), partition v into disjoint U and W
+        such that e( U, W) /( | U | * | W|) is minimized with e(U, W) being
+        the number of edges in {(u, w) in E | u in U and w in W}.
+        Src: https://pdfs.semanticscholar.org/3627/8bf6919c6dced7d16dc0c02d725e1ed178f8.pdf
+        """
         return np.sum(fCnts/nVerticesClusters)
 
     def _get_frontiers(self, clusters):
+        """
+        The "cut": numerator of the ratio cut
+        """
         frontiers = np.zeros(self.k)
         for edge in self.edges:
             v1, v2 = edge
@@ -79,8 +84,6 @@ class Evaluator:
 
     def _get_min_cluster_size(self, nVerticesClusters):
         """
-        Fast private implementation
-        :param nVerticesClusters:
         :return: size of smallest community
         """
         return min(nVerticesClusters)
@@ -88,8 +91,6 @@ class Evaluator:
 
     def _get_max_cluster_size(self, nVerticesClusters):
         """
-        Fast private implementation
-        :param nVerticesClusters:
         :return: size of largest community
         """
         return max(nVerticesClusters)
@@ -108,13 +109,23 @@ class Evaluator:
         return max(self._get_nVertices_per_cluster(clusters))
 
     def _get_balance_index(self, nVerticesClusters):
+        """
+        :return: balance index
+        """
         return max(nVerticesClusters)/(self.nVertices/self.k)
 
     def _get_expansion(self, fCnts, nVerticesClusters):
+        """
+        src: https://fr.wikipedia.org/wiki/Taux_d%27expansion_(
+        th%C3%A9orie_des_graphes)
+        """
 
         return max(fCnts / nVerticesClusters)
 
     def _get_conductance(self, nVerticesClusters, fCnts):
+        """
+        src: https://en.wikipedia.org/wiki/Conductance_(graph)
+        """
         denum = np.array(
             [min(cnt, self.nVertices - cnt) for cnt in nVerticesClusters])
         return np.sum(fCnts / denum)
@@ -203,9 +214,8 @@ class Evaluator:
 
     def barPlot(self, y, allParams, ylabel):
 
-        # labels = [str(p) for p in allParams]
         labels = ["alg {}".format(i+1) for i in range(len(allParams))]
-        # index = np.arange(len(labels))
+
         index = np.arange(len(labels))
         fig, ax = plt.subplots()
         rects = ax.bar(index, y)
@@ -217,9 +227,6 @@ class Evaluator:
 
         ax.set_xlabel('Set of parameters', fontsize=20)
         ax.set_ylabel(ylabel, fontsize=20)
-        # ax.set_xticks(index, labels)
-        # ax.xaxis.set_tick_params(labelsize=8, rotation=30)
-        # ax.set_xticklabels(labels, fontsize=8) # , labelrotation=30
 
         idxTick = [r.get_x() + r.get_width() / 2 for r in rects]
         plt.xticks(idxTick, labels, fontsize=12, ha='center') # , rotation=45
@@ -237,7 +244,9 @@ class Evaluator:
         plt.show()
 
     def _autolabel(self, rects, ax):
-        """Attach a text label above each bar in *rects*, displaying its height."""
+        """
+        Attach a text label above each bar in *rects*, displaying its height.
+        """
         for rect in rects:
             height = rect.get_height()
             ax.annotate('{0:.3f}'.format(height),
