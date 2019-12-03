@@ -42,7 +42,7 @@ class Solver:
 
         # Compute the eigenvalues and corresponding eigenvectors
         iprint("Computing eigens ...")
-        eValues, eVectors = self.compute_eigen3(L)
+        eValues, eVectors = self.compute_eigen2(L, params["normalized_spectral_clustering"])
 
         dprint("evalues = {}".format(eValues))
 
@@ -83,7 +83,7 @@ class Solver:
                              "provided".format(type))
 
 
-    def compute_eigen(self, M):
+    def compute_eigen(self, M, normalize=False):
         """
         Compute eigenvectors of the given matrix M.
         """
@@ -96,26 +96,31 @@ class Solver:
         if not np.isreal(eValues).all or not np.isreal(eVectors).all:
             raise ValueError("[compute_eigen] computed complex eigen while "
                              "expecting real ones.")
+
+        if normalize:
+            eVectors = self._normalize(eVectors)
         return np.real(eValues), np.real(eVectors)
 
 
-    # does not work well
-    def compute_eigen2(self, M):
-        M = sparse.csr_matrix(M.astype(float))
-        eValues, eVectors = sla.eigsh(M, self.k, sigma=0, which='LM')
-
-
-
-    def compute_eigen3(self, M):
+    def compute_eigen2(self, M, normalize=False):
         M = sparse.csr_matrix(M.astype(float))
         eValues, eVectors = sla.eigsh(M, k=self.k, which='SM', v0=(np.zeros(
             self.nVertices) + np.finfo(np.float64).eps))
         if not np.isreal(eValues).all or not np.isreal(eVectors).all:
             raise ValueError("[compute_eigen] computed complex eigen while "
                              "expecting real ones.")
+        if normalize:
+            eVectors = self._normalize(eVectors)
+
         return np.real(eValues), np.real(eVectors)
 
-
+    def _normalize(self, M):
+        # Compute l_2 norm
+        norm = np.sqrt((M * M).sum(axis=1))
+        for i in range(M.shape[0]):
+            for j in range(M.shape[1]):
+                M[i, j] /= norm[i]
+        return M
 
     def kmean(self, M):
         """
@@ -180,8 +185,8 @@ if __name__ =="__main__":
     # Grid search on ca-AstroPh.txt
     # ---------------------------------
     gridParams = [
-        {"L": "unormalized"},
-        {"L":"normalized"}
+        {"L": "normalized", "normalized_spectral_clustering": True},
+        {"L": "unormalized", "normalized_spectral_clustering":False},
     ]
     try:
         evaluator = Evaluator(solver)

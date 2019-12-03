@@ -167,7 +167,6 @@ class Evaluator:
 
         plt.title('Conductance on {} per parameter sets'.format(
             self.graphName), fontsize=15)
-        fig.tight_layout()
 
         dirPath = os.path.dirname(os.path.realpath(__file__))
         dp = os.path.join(dirPath, "..", "plots")
