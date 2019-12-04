@@ -42,7 +42,7 @@ class Solver:
 
         # Compute the eigenvalues and corresponding eigenvectors
         iprint("Computing eigens ...")
-        eValues, eVectors = self.compute_eigen(L, params["eigen_norm"])
+        eValues, eVectors = self.compute_eigen(L, params["eigen_norm"], params["L"])
 
         dprint("evalues = {}".format(eValues))
 
@@ -96,12 +96,13 @@ class Solver:
             raise ValueError("[compute_laplacian] Unknown type {} "
                              "provided".format(type))
 
-    def _loadEigenPickle(self):
+    def _loadEigenPickle(self, laplacianType):
         try:
 
-            fp1 = os.path.join(DIR_PATH, "pickle", self.G.name + "-" +
+            fp1 = os.path.join(DIR_PATH, "pickle", self.G.name + "-"
+                               +"L_"+laplacianType+"-"+
                                "eValues.pkl")
-            fp2 = os.path.join(DIR_PATH, "pickle", self.G.name + "-" +
+            fp2 = os.path.join(DIR_PATH, "pickle", self.G.name + "-" +"L_"+laplacianType+"-"+
                                "eVectors.pkl")
 
             with open(fp1, 'rb') as fo1:
@@ -114,11 +115,13 @@ class Solver:
         except Exception as e:
             return None
 
-    def _saveEigenPickle(self, eValues, eVectors):
+    def _saveEigenPickle(self, eValues, eVectors, laplacianType):
         dp = os.path.join(DIR_PATH, "pickle")
-        fp1 = os.path.join(DIR_PATH, "pickle", self.G.name + "-" +
+        fp1 = os.path.join(DIR_PATH, "pickle", self.G.name + "-"
+                           + "L_" + laplacianType + "-" +
                            "eValues.pkl")
-        fp2 = os.path.join(DIR_PATH, "pickle", self.G.name + "-" +
+        fp2 = os.path.join(DIR_PATH, "pickle",
+                           self.G.name + "-" + "L_" + laplacianType + "-" +
                            "eVectors.pkl")
         if not os.path.exists(dp):
             os.mkdir(dp)
@@ -128,14 +131,15 @@ class Solver:
             pkl.dump(eVectors, fo2)
 
 
-    def compute_eigen(self, M, normalization=None):
+    def compute_eigen(self, M, normalization=None,
+                      laplacianType="unormalized"):
         """
         Compute the eigen values and eigen vectors
         :param M: sparse 2x2 matrix
         :param normalization: type of normalization (None, l1 or l2)
         :return: real eValues, eVectors
         """
-        eigens = self._loadEigenPickle()
+        eigens = self._loadEigenPickle(laplacianType)
         if eigens is None:
 
             M = sparse.csr_matrix(M.astype(float))
@@ -145,17 +149,22 @@ class Solver:
             if not np.isreal(eValues).all or not np.isreal(eVectors).all:
                 raise ValueError("[compute_eigen] computed complex eigen while "
                                  "expecting real ones.")
-            if normalize is not None:
-                eVectors = self._normalize(eVectors, normalization)
 
             eValues = np.real(eValues)
             eVectors = np.real(eVectors)
 
-            # save pickle:
-            self._saveEigenPickle(eValues, eVectors)
+            # save unormalized eigens with pickle:
+            self._saveEigenPickle(eValues, eVectors, laplacianType)
+            if normalize is not None:
+                eVectors = self._normalize(eVectors, normalization)
+
             return eValues, eVectors
         else:
-            return eigens[0], eigens[1]
+            eValues = eigens[0]
+            eVectors = None
+            if normalize is not None:
+                eVectors = self._normalize(eigens[1], normalization)
+            return eValues, eVectors
 
 
     def _normalize(self, M, type):
@@ -266,15 +275,15 @@ if __name__ =="__main__":
         gridParams = [
             {"L": "unormalized", "eigen_norm": None},
             {"L": "unormalized", "eigen_norm": "l1"},
-            # {"L": "unormalized", "eigen_norm": "l2"},
-            #
-            # {"L": "normalized", "eigen_norm": None},
-            # {"L": "normalized", "eigen_norm": "l1"},
-            # {"L": "normalized", "eigen_norm": "l2"},
-            #
-            # {"L": "normalized_random_walk", "eigen_norm": None},
-            # {"L": "normalized_random_walk", "eigen_norm": "l1"},
-            # {"L": "normalized_random_walk", "eigen_norm":"l2"},
+            {"L": "unormalized", "eigen_norm": "l2"},
+
+            {"L": "normalized", "eigen_norm": None},
+            {"L": "normalized", "eigen_norm": "l1"},
+            {"L": "normalized", "eigen_norm": "l2"},
+
+            {"L": "normalized_random_walk", "eigen_norm": None},
+            {"L": "normalized_random_walk", "eigen_norm": "l1"},
+            {"L": "normalized_random_walk", "eigen_norm":"l2"},
 
         ]
         try:
