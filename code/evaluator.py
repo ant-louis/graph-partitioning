@@ -3,9 +3,7 @@ import sys
 from utils import iprint, dprint
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
-import plotly.express as px
 import os
-import pandas as pd
 
 class Evaluator:
     """

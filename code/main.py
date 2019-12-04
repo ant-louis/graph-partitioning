@@ -2,6 +2,7 @@ import os, sys
 import networkx as nx # management of graph
 from scipy.sparse import linalg as sla
 import scipy.sparse as sparse
+import scipy.linalg as la
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
 import numpy as np
@@ -85,11 +86,11 @@ class Solver:
 
             # Let's reverse the diagonal matrix (equivalent to invert its
             # diagonal elements)
+
             invDegreeNodes = 1 / degreeNodes
             i = np.arange(self.nVertices)
             invD = sparse.csr_matrix((invDegreeNodes, (i, i)),
                                      shape=self.adj.shape)
-
             I = sparse.identity(n=self.nVertices)
             return I - invD * self.adj
         else:
@@ -145,7 +146,10 @@ class Solver:
             M = sparse.csr_matrix(M.astype(float))
             # sla.eigs
 
-            eValues, eVectors = sla.eigsh(M, k=self.k, which='SM', v0=(np.zeros(self.nVertices) + np.finfo(np.float64).eps))
+            eValues, eVectors = sla.eigsh(M, k=self.k, which='SM',
+                                          v0=(np.zeros(self.nVertices) +
+                                              np.finfo(np.float64).eps),
+                                          tol=1e-9)
             if not np.isreal(eValues).all or not np.isreal(eVectors).all:
                 raise ValueError("[compute_eigen] computed complex eigen while "
                                  "expecting real ones.")
@@ -230,6 +234,9 @@ if __name__ =="__main__":
     parser.add_argument('--graphName', help='The name of the graph or "all" '
                                             'if all should be analyzed',
                         default="ca-AstroPh")
+    parser.add_argument('--onlyBest', help='Turn off parameter optimization '
+                                           'and use the best found '
+                                           'parameters from our results', action="store_true")
     args = parser.parse_args()
 
 
@@ -248,30 +255,11 @@ if __name__ =="__main__":
         graphNames = ["ca-GrQc", "Oregon-1", "soc-Epinions1",
                       "web-NotreDame", "roadNet-CA"]
 
-    for graphName in graphNames:
-
-        # Import graph from txt file and create solver object
-        G, nVertices, nEdges, k = import_graph(graphName)
-
-        # Instanciate a solver for a given problem instance
-        solver = Solver(G, nVertices, nEdges, k)
-
-
-        # # Simple test of a single algorithm
-        # # ---------------------------------
-        # params = {"L":"unormalized"}
-        # try:
-        #     output = solver.make_clusters(params)
-        # except Exception as e:
-        #     sys.exit(e)
-        # solver.dumpOutput(graphName, output)
-        #
-        # evaluator = Evaluator(solver)
-        # metrics = evaluator.evaluate(output)
-        # print(metrics)
-
-        # Grid search on graphName
-        # ------------------------
+    if args.onlyBest:
+        gridParams = [
+            {"L": "unormalized", "eigen_norm": None}
+        ]
+    else:
         gridParams = [
             {"L": "unormalized", "eigen_norm": None},
             {"L": "unormalized", "eigen_norm": "l1"},
@@ -283,9 +271,23 @@ if __name__ =="__main__":
 
             {"L": "normalized_random_walk", "eigen_norm": None},
             {"L": "normalized_random_walk", "eigen_norm": "l1"},
-            {"L": "normalized_random_walk", "eigen_norm":"l2"},
+            {"L": "normalized_random_walk", "eigen_norm": "l2"},
 
         ]
+
+
+
+    for graphName in graphNames:
+
+        # Import graph from txt file and create solver object
+        G, nVertices, nEdges, k = import_graph(graphName)
+
+        # Instanciate a solver for a given problem instance
+        solver = Solver(G, nVertices, nEdges, k)
+
+        # Grid search on graphName
+        # ------------------------
+
         try:
             evaluator = Evaluator(solver)
             bestParams, bestMetrics, bestOutput = evaluator.gridSearch(

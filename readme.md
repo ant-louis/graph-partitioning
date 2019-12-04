@@ -3,6 +3,16 @@
 ## About
 Assignment for data mining course.
 
+## Step to use the code
+1. Install all the python module requirements listed in requirements.txt
+2. ``cd code``
+3. Run main.py
+    * ``python main.py --graphName <graphName>``
+        * To run a grid search optimization <graphName>.txt
+    * ``python main.py --graphName all``
+        * To run a grid search optimization on the 5 graphs of the statement
+        
+
 ## Competition
 We didn't take part in the competition
 
