@@ -206,7 +206,7 @@ class Evaluator:
                 self.barPlot(y, gridParams, "Score")
             if "n_ratio_cut" in plots:
                 y = [m["n_ratio_cut"] for m in allMetrics]
-                self.barPlot(y, gridParams, "Normalized Ratio Cut")
+                self.barPlot(y, gridParams, "Normalized-Ratio-Cut")
             if "expansion" in plots:
                 y = [m["expansion"] for m in allMetrics]
                 self.barPlot(y, gridParams, "Expansion")
