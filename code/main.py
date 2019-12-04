@@ -5,7 +5,7 @@ import scipy.sparse as sparse
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
 import numpy as np
-
+import pickle as pkl
 from argparse import ArgumentParser
 
 # Customer classes and functions
@@ -17,7 +17,7 @@ np.set_printoptions(threshold=sys.maxsize)
 """Global variables used for information and debug msges prints"""
 VERBOSE = True
 DEBUG = False
-
+DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 class Solver:
     """
@@ -96,6 +96,38 @@ class Solver:
             raise ValueError("[compute_laplacian] Unknown type {} "
                              "provided".format(type))
 
+    def _loadEigenPickle(self):
+        try:
+
+            fp1 = os.path.join(DIR_PATH, "pickle", self.G.name + "-" +
+                               "eValues.pkl")
+            fp2 = os.path.join(DIR_PATH, "pickle", self.G.name + "-" +
+                               "eVectors.pkl")
+
+            with open(fp1, 'rb') as fo1:
+                eValues = pkl.load(fo1)
+
+            with open(fp2, 'rb') as fo2:
+                eVectors = pkl.load(fo2)
+
+            return eValues, eVectors
+        except Exception as e:
+            return None
+
+    def _saveEigenPickle(self, eValues, eVectors):
+        dp = os.path.join(DIR_PATH, "pickle")
+        fp1 = os.path.join(DIR_PATH, "pickle", self.G.name + "-" +
+                           "eValues.pkl")
+        fp2 = os.path.join(DIR_PATH, "pickle", self.G.name + "-" +
+                           "eVectors.pkl")
+        if not os.path.exists(dp):
+            os.mkdir(dp)
+        with open(fp1, 'wb') as fo1:
+            pkl.dump(eValues, fo1)
+        with open(fp2, "wb") as fo2:
+            pkl.dump(eVectors, fo2)
+
+
     def compute_eigen(self, M, normalization=None):
         """
         Compute the eigen values and eigen vectors
@@ -103,17 +135,27 @@ class Solver:
         :param normalization: type of normalization (None, l1 or l2)
         :return: real eValues, eVectors
         """
-        M = sparse.csr_matrix(M.astype(float))
-        # sla.eigs
-        eValues, eVectors = sla.eigsh(M, k=self.k, which='SM', v0=(np.zeros(
-            self.nVertices) + np.finfo(np.float64).eps))
-        if not np.isreal(eValues).all or not np.isreal(eVectors).all:
-            raise ValueError("[compute_eigen] computed complex eigen while "
-                             "expecting real ones.")
-        if normalize is not None:
-            eVectors = self._normalize(eVectors, normalization)
+        eigens = self._loadEigenPickle()
+        if eigens is None:
 
-        return np.real(eValues), np.real(eVectors)
+            M = sparse.csr_matrix(M.astype(float))
+            # sla.eigs
+
+            eValues, eVectors = sla.eigsh(M, k=self.k, which='SM', v0=(np.zeros(self.nVertices) + np.finfo(np.float64).eps))
+            if not np.isreal(eValues).all or not np.isreal(eVectors).all:
+                raise ValueError("[compute_eigen] computed complex eigen while "
+                                 "expecting real ones.")
+            if normalize is not None:
+                eVectors = self._normalize(eVectors, normalization)
+
+            eValues = np.real(eValues)
+            eVectors = np.real(eVectors)
+
+            # save pickle:
+            self._saveEigenPickle(eValues, eVectors)
+            return eValues, eVectors
+        else:
+            return eigens[0], eigens[1]
 
 
     def _normalize(self, M, type):
@@ -194,9 +236,8 @@ if __name__ =="__main__":
         #               "web-NotreDame"]
         # graphNames = ["soc-Epinions1",
         #               "web-NotreDame"]
-        graphNames = ["ca-AstroPh", "ca-CondMat", "ca-GrQc", "ca-HepPh",
-                      "ca-HepTh", "Oregon-1", "soc-Epinions1",
-                      "web-NotreDame"]
+        graphNames = ["ca-GrQc", "Oregon-1", "soc-Epinions1",
+                      "web-NotreDame", "roadNet-CA"]
 
     for graphName in graphNames:
 
@@ -225,15 +266,15 @@ if __name__ =="__main__":
         gridParams = [
             {"L": "unormalized", "eigen_norm": None},
             {"L": "unormalized", "eigen_norm": "l1"},
-            {"L": "unormalized", "eigen_norm": "l2"},
-
-            {"L": "normalized", "eigen_norm": None},
-            {"L": "normalized", "eigen_norm": "l1"},
-            {"L": "normalized", "eigen_norm": "l2"},
-
-            {"L": "normalized_random_walk", "eigen_norm": None},
-            {"L": "normalized_random_walk", "eigen_norm": "l1"},
-            {"L": "normalized_random_walk", "eigen_norm":"l2"},
+            # {"L": "unormalized", "eigen_norm": "l2"},
+            #
+            # {"L": "normalized", "eigen_norm": None},
+            # {"L": "normalized", "eigen_norm": "l1"},
+            # {"L": "normalized", "eigen_norm": "l2"},
+            #
+            # {"L": "normalized_random_walk", "eigen_norm": None},
+            # {"L": "normalized_random_walk", "eigen_norm": "l1"},
+            # {"L": "normalized_random_walk", "eigen_norm":"l2"},
 
         ]
         try:
