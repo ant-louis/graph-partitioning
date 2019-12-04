@@ -240,8 +240,8 @@ class Evaluator:
 
         ax.set_xticklabels(labels)
         ax.set_ylabel("Cluster size", fontsize=20)
-        ax.set_xlabel('Set of parameters', fontsize=20)
-        ax.set_title('Box plot of cluster sizes', fontsize=15)
+        # ax.set_xlabel('Set of parameters', fontsize=20)
+        # ax.set_title('Box plot of cluster sizes', fontsize=15)
 
         dirPath = os.path.dirname(os.path.realpath(__file__))
         dp = os.path.join(dirPath, "..", "plots")
@@ -266,14 +266,14 @@ class Evaluator:
         # Add text on top of bar:
         self._autolabel(rects, ax)
 
-        ax.set_xlabel('Set of parameters', fontsize=20)
+        # ax.set_xlabel('Set of parameters', fontsize=20)
         ax.set_ylabel(ylabel, fontsize=20)
 
         idxTick = [r.get_x() + r.get_width() / 2 for r in rects]
         plt.xticks(idxTick, labels, fontsize=12, ha='center') # , rotation=45
 
-        plt.title(ylabel+' on {} per parameter sets'.format(
-            self.graphName), fontsize=15)
+        # plt.title(ylabel+' on {} per parameter sets'.format(
+        #     self.graphName), fontsize=15)
 
         dirPath = os.path.dirname(os.path.realpath(__file__))
         dp = os.path.join(dirPath, "..", "plots")
