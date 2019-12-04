@@ -10,7 +10,7 @@ def import_graph(graphName):
     Import the graph from the txt file.
     """
     # Load txt file
-    iprint("Importing graph data ...")
+    iprint("Importing graph {} ...".format(graphName))
     fp = os.path.join("..", "graphs_processed", graphName + ".txt")
 
     # Create the graph
@@ -57,3 +57,4 @@ def dprint(sth):
     """
     if DEBUG is True:
         print(sth)
+

@@ -74,10 +74,12 @@ class Solver:
             - normalized_random_walk: I-D^-1A
         :return: L according to the type
         """
+        # [Ulrike von Luxburg] corresponds to "L_sym"
         if type == "normalized":
             return nx.normalized_laplacian_matrix(self.G)
         elif type == "unormalized":
             return nx.laplacian_matrix(self.G)
+        # [Ulrike von Luxburg] corresponds to "L_rw"
         elif type == "normalized_random_walk":
             degreeNodes = np.array(self.adj.sum(axis=0))[0]
 
@@ -190,7 +192,10 @@ if __name__ =="__main__":
         # graphNames = ["ca-AstroPh", "ca-CondMat", "ca-GrQc", "ca-HepPh",
         #               "ca-HepTh", "Oregon-1", "roadNet-CA", "soc-Epinions1",
         #               "web-NotreDame"]
-        graphNames = ["Oregon-1", "roadNet-CA", "soc-Epinions1",
+        # graphNames = ["soc-Epinions1",
+        #               "web-NotreDame"]
+        graphNames = ["ca-AstroPh", "ca-CondMat", "ca-GrQc", "ca-HepPh",
+                      "ca-HepTh", "Oregon-1", "soc-Epinions1",
                       "web-NotreDame"]
 
     for graphName in graphNames:
@@ -234,6 +239,8 @@ if __name__ =="__main__":
         try:
             evaluator = Evaluator(solver)
             bestParams, bestMetrics, bestOutput = evaluator.gridSearch(
-                gridParams, dumpOutputBest=True, barPlots=["score", "n_ratio_cut"])
+                gridParams, dumpOutputBest=True, plots=["score",
+                                                        "n_ratio_cut",
+                                                        "box_plot"])
         except Exception as e:
             sys.exit(e)
