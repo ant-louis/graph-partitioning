@@ -2,7 +2,6 @@ import os, sys
 import networkx as nx # management of graph
 from scipy.sparse import linalg as sla
 import scipy.sparse as sparse
-import scipy.linalg as la
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
 import numpy as np
@@ -26,7 +25,6 @@ class Solver:
     """
     def __init__(self, G, nVertices, nEdges, k):
         self.G = G
-        # TODO: following not even required:
         self.adj = self.compute_adjacency()
         self.nVertices = nVertices
         self.nEdges = nEdges
@@ -43,7 +41,8 @@ class Solver:
 
         # Compute the eigenvalues and corresponding eigenvectors
         iprint("Computing eigens ...")
-        eValues, eVectors = self.compute_eigen(L, params["eigen_norm"], params["L"])
+        eValues, eVectors = self.compute_eigen(L, params["eigen_norm"],
+                                               params["L"], params["tol"])
 
         dprint("evalues = {}".format(eValues))
 
@@ -133,7 +132,7 @@ class Solver:
 
 
     def compute_eigen(self, M, normalization=None,
-                      laplacianType="unormalized"):
+                      laplacianType="unormalized", tol=None):
         """
         Compute the eigen values and eigen vectors
         :param M: sparse 2x2 matrix
@@ -145,11 +144,13 @@ class Solver:
 
             M = sparse.csr_matrix(M.astype(float))
             # sla.eigs
-
+            tol=0
+            if tol is None:
+                tol = 0
             eValues, eVectors = sla.eigsh(M, k=self.k, which='SM',
                                           v0=(np.zeros(self.nVertices) +
                                               np.finfo(np.float64).eps),
-                                          tol=1e-9)
+                                          tol=tol)
             if not np.isreal(eValues).all or not np.isreal(eVectors).all:
                 raise ValueError("[compute_eigen] computed complex eigen while "
                                  "expecting real ones.")
@@ -250,8 +251,6 @@ if __name__ =="__main__":
         # graphNames = ["ca-AstroPh", "ca-CondMat", "ca-GrQc", "ca-HepPh",
         #               "ca-HepTh", "Oregon-1", "roadNet-CA", "soc-Epinions1",
         #               "web-NotreDame"]
-        # graphNames = ["soc-Epinions1",
-        #               "web-NotreDame"]
         graphNames = ["ca-GrQc", "Oregon-1", "soc-Epinions1",
                       "web-NotreDame", "roadNet-CA"]
 
@@ -261,17 +260,18 @@ if __name__ =="__main__":
         ]
     else:
         gridParams = [
-            {"L": "unormalized", "eigen_norm": None},
-            {"L": "unormalized", "eigen_norm": "l1"},
-            {"L": "unormalized", "eigen_norm": "l2"},
 
-            {"L": "normalized", "eigen_norm": None},
-            {"L": "normalized", "eigen_norm": "l1"},
-            {"L": "normalized", "eigen_norm": "l2"},
+            # {"L": "unormalized", "eigen_norm": None, "tol":0},
+            # {"L": "unormalized", "eigen_norm": "l1", "tol":0},
+            # {"L": "unormalized", "eigen_norm": "l2", "tol":0},
 
-            {"L": "normalized_random_walk", "eigen_norm": None},
-            {"L": "normalized_random_walk", "eigen_norm": "l1"},
-            {"L": "normalized_random_walk", "eigen_norm": "l2"},
+            {"L": "normalized", "eigen_norm": None, "tol":0.5*1e-1},
+            {"L": "normalized", "eigen_norm": "l1", "tol":0.5*1e-1},
+            {"L": "normalized", "eigen_norm": "l2", "tol":0.5*1e-1},
+
+            {"L": "normalized_random_walk", "eigen_norm": None, "tol":0.5*1e-1},
+            {"L": "normalized_random_walk", "eigen_norm": "l1", "tol":0.5*1e-1},
+            {"L": "normalized_random_walk", "eigen_norm": "l2", "tol":0.5*1e-1},
 
         ]
 

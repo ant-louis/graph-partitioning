@@ -233,7 +233,7 @@ class Evaluator:
         fig, ax = plt.subplots()
         bp = ax.boxplot(allClusterSizes, showmeans= True,
                         flierprops=red_square, meanprops=green_square, showfliers=False)
-        labels = ["Algo {}".format(i+1) for i in range(
+        labels = ["Algo {}".format(i+1+3) for i in range(
             allClusterSizes.shape[1])]
 
         ax.set_xticklabels(labels)
@@ -253,7 +253,7 @@ class Evaluator:
 
     def barPlot(self, y, allParams, ylabel):
 
-        labels = ["alg {}".format(i+1) for i in range(len(allParams))]
+        labels = ["alg {}".format(i+1+3) for i in range(len(allParams))]
 
         index = np.arange(len(labels))
         fig, ax = plt.subplots()
