@@ -47,7 +47,7 @@ class Evaluator:
         # Compute ratio cut
         score = self._get_ratio_cut(cuts, nVerticesClusters)
 
-        expansion = self._get_expansion(cuts, nVerticesClusters)
+        # expansion = self._get_expansion(cuts, nVerticesClusters)
 
         conductance = self._get_conductance(nVerticesClusters, cuts)
 
@@ -55,7 +55,7 @@ class Evaluator:
                 "score": score,
                 "n_ratio_cut":nRatioCut,
                 "bindex":bindex,
-                "expansion":expansion,
+                # "expansion":expansion,
                 "conductance":conductance,
                 "var_C_size":varCSize,
                 "min_C_size":minCSize,
@@ -123,13 +123,11 @@ class Evaluator:
         """
         return max(nVerticesClusters)/(self.nVertices/self.k)
 
-    def _get_expansion(self, cuts, nVerticesClusters):
-        """
-        src: https://fr.wikipedia.org/wiki/Taux_d%27expansion_(
-        th%C3%A9orie_des_graphes)
-        """
-
-        return max(cuts / nVerticesClusters)
+    # def _get_expansion(self, cuts, nVerticesClusters):
+    #     """
+    #     src: https://fr.wikipedia.org/wiki/Taux_d%27expansion_(th%C3%A9orie_des_graphes)
+    #     """
+    #     return min(cuts / nVerticesClusters)
 
     def _get_conductance(self, nVerticesClusters, cuts):
         """
@@ -137,7 +135,7 @@ class Evaluator:
         """
         denum = np.array(
             [min(cnt, self.nVertices - cnt) for cnt in nVerticesClusters])
-        return np.sum(cuts / denum)
+        return min(cuts / denum)
 
     def _get_normalized_ratio_cut(self, clusters, cuts):
         """
