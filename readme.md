@@ -1,7 +1,7 @@
-# Data mining (CS-E4600): graph partitioning
+# Data mining: graph partitioning
 
 ## About
-Assignment for data mining course.
+Assignment for data mining course (CS-E4600) at Aalto University.
 
 ## Step to use the code
 1. Install all the python module requirements listed in requirements.txt
